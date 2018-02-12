@@ -3,11 +3,12 @@
 # Edited from to use Managed Disks
 # https://docs.microsoft.com/en-us/azure/virtual-machines/windows/change-availability-set
 
-Login-AzureRmAccount
+
+# Login-AzureRmAccount
 
 #set variables
 $rg = "lalofran-sea-rg-03"
-$vmName = "lalofranseavm02"
+$vmName = "lalofranseavm03"
 $newAvailSetName = "lalofranseaas01"
 $outFile = "C:\temp\outfile.txt"
 

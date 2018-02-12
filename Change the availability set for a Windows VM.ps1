@@ -1,9 +1,11 @@
 ﻿# https://docs.microsoft.com/en-us/azure/virtual-machines/windows/change-availability-set
 
+Login-AzureRmAccount
+
 #set variables
-$rg = "demo-resource-group"
-$vmName = "demo-vm"
-$newAvailSetName = "demo-as"
+$rg = "lalofran-sea-rg-03"
+$vmName = "lalofranseavm02"
+$newAvailSetName = "lalofranseaas01"
 $outFile = "C:\temp\outfile.txt"
 
 #Get VM Details
@@ -29,8 +31,8 @@ $OriginalVM.StorageProfile.OsDisk.OsType | Out-File -FilePath $outFile -Append
 $OriginalVM.StorageProfile.OsDisk.Vhd.Uri | Out-File -FilePath $outFile -Append
 
 if ($OriginalVM.StorageProfile.DataDisks) {
-"Data Disk(s): " | Out-File -FilePath $outFile -Append
-$OriginalVM.StorageProfile.DataDisks | Out-File -FilePath $outFile -Append
+    "Data Disk(s): " | Out-File -FilePath $outFile -Append
+    $OriginalVM.StorageProfile.DataDisks | Out-File -FilePath $outFile -Append
 }
 
 #Remove the original VM
@@ -43,12 +45,32 @@ $availset = New-AzureRmAvailabilitySet -ResourceGroupName $rg -Name $newAvailSet
 }
 
 #Create the basic configuration for the replacement VM
-$newVM = New-AzureRmVMConfig -VMName $OriginalVM.Name -VMSize $OriginalVM.HardwareProfile.VmSize -AvailabilitySetId $availSet.Id
-Set-AzureRmVMOSDisk -VM $NewVM -VhdUri $OriginalVM.StorageProfile.OsDisk.Vhd.Uri  -Name $OriginalVM.Name -CreateOption Attach -Windows
+$newVM = New-AzureRmVMConfig -VMName $OriginalVM.Name `
+    -VMSize $OriginalVM.HardwareProfile.VmSize `
+    -AvailabilitySetId $availSet.Id
+
+# PICKONE
+# 1. VHD
+Set-AzureRmVMOSDisk -VM $NewVM `
+    -VhdUri $OriginalVM.StorageProfile.OsDisk.Vhd.Uri  `
+    -Name $OriginalVM.Name `
+    -CreateOption Attach -Windows
+# 2.
+Set-AzureRmVMOSDisk `
+    -VM $NewVM `
+    -ManagedDiskId $OriginalVM.StorageProfile.OsDisk.ManagedDisk.Id `
+    -CreateOption Attach -Windows
+
 
 #Add Data Disks
 foreach ($disk in $OriginalVM.StorageProfile.DataDisks ) { 
-Add-AzureRmVMDataDisk -VM $newVM -Name $disk.Name -VhdUri $disk.Vhd.Uri -Caching $disk.Caching -Lun $disk.Lun -CreateOption Attach -DiskSizeInGB $disk.DiskSizeGB
+    Add-AzureRmVMDataDisk -VM $newVM `
+        -Name $disk.Name `
+        -VhdUri $disk.Vhd.Uri `
+        -Caching $disk.Caching `
+        -Lun $disk.Lun `
+        -CreateOption Attach `
+        -DiskSizeInGB $disk.DiskSizeGB
 }
 
 #Add NIC(s)
